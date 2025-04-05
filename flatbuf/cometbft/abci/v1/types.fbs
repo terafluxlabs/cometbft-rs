@@ -1,0 +1,385 @@
+namespace cometbft.abci.v1;
+include "cometbft/crypto/v1/proof.fbs";
+include "cometbft/types/v1/params.fbs";
+include "cometbft/types/v1/validator.fbs";
+
+//All Unions go here
+union RequestUnion{
+    EchoRequest,
+    FlushRequest,
+    InfoRequest,
+    InitChainRequest,
+    QueryRequest,
+    CheckTxRequest,
+    CommitRequest,
+    ListSnapshotRequest,
+    OfferSnapshotRequest,
+    LoadSnapshotChunkRequest,
+    ApplySnapshotChunkRequest,
+    PrepareProposalRequest,
+    ProcessProposalRequest,
+    ExtendVoteRequest,
+    VerifyVoteExtensionRequest,
+    FinalizeBlockRequest
+}
+
+union ResponseUnion{
+    ExceptionResponse,
+    EchoResponse,
+    FlushResponse,
+    InfoResponse,
+    InitChainResponse,
+    QueryResponse,
+    CheckTxResponse,
+    CommitResponse,
+    ListSnapshotsResponse,
+    OfferSnapshotResponse,
+    LoadSnapshotChunkResponse,
+    ApplySnapshotChunkResponse,
+    PrepareProposalResponse,
+    ProcessProposalResponse,
+    ExtendVoteResponse,
+    VerifyVoteExtensionResponse,
+    FinalizeBlockResponse,
+}
+
+// All structs go here
+struct Timestamp {
+    seconds:long;
+    nanos:int;
+}
+
+struct Duration {
+    seconds:long;
+    nanos:int;
+}
+
+
+// All enums go here
+enum CheckTxType: byte {
+    CHECK_TX_TYPE_UNKNOWN = 0;
+    CHECK_TX_TYPE_RECHECK = 1;
+    CHECK_TX_TYPE_CHECK = 2;
+}
+
+enum  MisbehaviorType: byte {
+    MISBEHAVIOR_TYPE_UNKNOWN = 0;
+    MISBEHAVIOR_TYPE_DUPLICATE_VOTE = 1;
+    MISBEHAVIOR_TYPE_LIGHT_CLIENT_ATTACK = 2;
+}
+
+enum OfferSnapshotResult: byte {
+    OFFER_SNAPSHOT_RESULT_UNKNOWN = 0;
+    OFFER_SNAPSHOT_RESULT_ACCEPT = 1;
+    OFFER_SNAPSHOT_RESULT_ABORT = 2;
+    OFFER_SNAPSHOT_RESULT_REJECT = 3;
+    OFFER_SNAPSHOT_RESULT_REJECT_FORMAT = 4;
+    OFFER_SNAPSHOT_RESULT_REJECT_SENDER = 5;
+}
+
+enum ApplySnapshotChunkResult: byte {
+    APPLY_SNAPSHOT_CHUNK_RESULT_UNKNOWN = 0;
+    APPLY_SNAPSHOT_CHUNK_RESULT_ACCEPT = 1;
+    APPLY_SNAPSHOT_CHUNK_RESULT_ABORT = 2;
+    APPLY_SNAPSHOT_CHUNK_RESULT_RETRY = 3;
+    APPLY_SNAPSHOT_CHUNK_RESULT_RETRY_SNAPSHOT = 4;
+    APPLY_SNAPSHOT_CHUNK_RESULT_REJECT_SNAPSHOT = 5;
+}
+
+enum ProcessProposalStatus: byte {
+    PROCESS_PROPOSAL_STATUS_UNKNOWN = 0;
+    PROCESS_PROPOSAL_STATUS_ACCEPT = 1;
+    PROCESS_PROPOSAL_STATUS_REJECT = 2;
+}
+
+enum VerifyVoteExtensionStatus: byte {
+    // Unknown
+    VERIFY_VOTE_EXTENSION_STATUS_UNKNOWN = 0;
+    // Accepted
+    VERIFY_VOTE_EXTENSION_STATUS_ACCEPT = 1;
+    // Rejecting the vote extension will reject the entire precommit by the sender.
+    // Incorrectly implementing this thus has liveness implications as it may affect
+    // CometBFT's ability to receive 2/3+ valid votes to finalize the block.
+    // Honest nodes should never be rejected.
+    VERIFY_VOTE_EXTENSION_STATUS_REJECT = 2;
+}
+
+//All common tables go here
+table Event {
+    type:string;
+    attributes:[EventAttribute];
+}
+
+table EventAttribute{
+    key:string;
+    value:string;
+    index:bool;
+}
+
+table CommitInfo {
+    round:int;
+    votes:VoteInfo;
+}
+
+table ExtendedCommitInfo{
+    round:int;
+    votes:ExtendedVoteInfo;
+}
+
+table ExtendedVoteInfo{
+    validator:Validator;
+    vote_extension:[ubyte];
+    extension_signature:[ubyte];
+    block_id_flag: cometbft.types.v1.BlockIDFlag;
+}
+
+table VoteInfo{
+    validator: Validator;
+    block_id_flag: cometbft.types.v1.BlockIDFlag;
+}
+
+table ExecTxResult {
+    code:int;
+    data:[ubyte];
+    log:string;
+    info:string;
+    gas_wanted:long;
+    gas_used:long;
+    events: Event;
+    codespace:string;
+}
+
+table TxResult {
+    height:long;
+    index:int;
+    tx:[ubyte];
+    result:ExecTxResult;
+}
+
+table Validator {
+    address:[ubyte];
+    power:long;
+}
+
+table ValidatorUpdate{
+    pub_key: cometbft.crypto.v1.PublicKey;
+    power: long;
+}
+
+table Misbehavior{
+    type:MisbehaviorType;
+    validator:Validator;
+    height:long;
+    time:Timestamp;
+    total_voting_power:long;
+}
+
+table Snapshot {
+    height:long;
+    format:int;
+    chunks:int;
+    hash:[ubyte];
+    metadata:[ubyte];
+}
+
+//All request tables go here
+table EchoRequest {
+    message:string;
+}
+
+table FlushRequest {}
+
+table InfoRequest {
+    version:string;
+    block_version:string;
+}
+
+table InitChainRequest {
+    time:Timestamp;
+    chain_id:string;
+    consensus_params:ConsensusParams;
+    validators:ValidatorUpdate;
+    app_state_byte:[ubyte];
+    initial_height:long;
+}
+table QueryRequest {
+    data:[ubyte];
+    path:string;
+    height:long;
+    prove:bool;
+}
+
+table CheckTxRequest {
+    tx:[ubyte];
+    type:CheckTxType;
+}
+
+table CommitRequest {}
+
+table ListSnapshotRequest {}
+//TODO:check where snapshot struct is impl
+table OfferSnapshotRequest {
+    snapshot:Snapshot;
+    app_hash:[ubyte];
+}
+
+table LoadSnapshotChunkRequest {
+    height:long;
+    format:int;
+    chunk:int;
+}
+
+table ApplySnapshotChunkRequest{
+    index:int;
+    chunk:[ubyte];
+    sender:string;
+}
+
+table PrepareProposalRequest{
+    max_tx_bytes:long;
+    txs: [[ubyte]];
+    local_last_commit: ExtendedCommitInfo;
+    misbehavior: [Misbehavior];
+    height:long;
+    time:Timestamp;
+    next_validators_hash:[ubyte];
+    proposer_address:[ubyte];
+}
+
+table ProcessProposalRequest{
+    txs:[ubyte];
+    proposed_last_commit:[CommitInfo];
+    misbehavior: [Misbehavior];
+    hash:[ubyte];
+    height:long;
+    time:Timestamp;
+    next_validators_hash:[ubyte];
+    proposer_address:[ubyte];
+}
+
+table ExtendVoteRequest{
+    hash:[ubyte];
+    height: long;
+    time: Timestamp;
+    txs:[ubyte];
+    proposed_last_commit:[CommitInfo];
+    misbehavior:[Misbehavior];
+    next_validators_hash:[ubyte];
+    proposer_address:[ubyte];
+}
+
+table VerifyVoteExtensionRequest { 
+    hash:[ubyte];
+    validator_address:[ubyte];
+    height:long;
+    vote_extension:[ubyte];
+}
+
+table FinalizeBlockRequest{
+    txs: [ubyte];
+    dedicated_last_commit:[CommitInfo];
+    misbehavior: [Misbehavior];
+    hash: [ubyte];
+    height: long;
+    time: Timestamp;
+    next_validators_hash: [ubyte];
+    proposer_address: [ubyte];
+}
+table Request {
+    value: RequestUnion;
+}
+// All Response tables go here
+table Response{
+    value: ResponseUnion;
+}
+table ExceptionResponse {
+    error:string;
+}
+table EchoResponse {
+    message:string;
+}
+table FlushResponse {}
+
+table InfoResponse {
+    data:string;
+    version:string;
+    app_version:long;
+    last_block_height:long;
+    last_block_app_hash:[ubyte];
+}
+
+table InitChainResponse{
+    consensus_params:cometbft.types.v1.ConsensusParams;
+    validators: ValidatorUpdate;
+    app_hash: [ubyte];
+}
+
+table QueryResponse {
+    code:int;
+    log:string;
+    info:string;
+    index:long;
+    key:[ubyte];
+    value:[ubyte];
+    proof_ops:cometbft.crypto.v1.ProofOps;
+    height:long;
+    codespace:string;
+}
+
+table CheckTxResponse{
+    code:int;
+    data:[ubyte];
+    log:string;
+    info:string;
+    gas_wanted:long;
+    gas_used:long;
+    events: [Event];
+    codespace:string;
+}
+
+table CommitResponse {
+    retain_height:long;
+}
+
+table ListSnapshotsResponse{
+    snapshots: [Snapshot];
+}
+
+table OfferSnapshotResponse {
+    result: OfferSnapshotResult;
+}
+
+table LoadSnapshotChunkResponse{
+    chunk: [ubyte];
+}
+
+table ApplySnapshotChunkResponse {
+    result: ApplySnapshotChunkResult;
+    refetch_chunk: [int];
+    reject_senders: [string];
+}
+
+table PrepareProposalResponse {
+    txs:[ubyte];
+}
+
+table ProcessProposalResponse {
+    status:ProcessProposalStatus;
+}
+
+table ExtendVoteResponse {
+    vote_extension:[ubyte];
+}
+
+table VerifyVoteExtensionResponse{
+    status:VerifyVoteExtensionStatus;
+}
+
+table FinalizeBlockResponse {
+    events: [Event];
+    tx_results: [ExecTxResult];
+    validator_updates: [ValidatorUpdate];
+    consensus_params: cometbft.types.v1.ConsensusParams;
+    app_hash: [ubyte];
+}
+

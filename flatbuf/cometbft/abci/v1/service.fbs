@@ -1,0 +1,21 @@
+namespace cometbft.abci.v1;
+include "cometbft/abci/v1/types.fbs";
+
+rpc_service ABCIService {
+    Echo(EchoRequest): EchoResponse;
+    Flush(FlushRequest): FlushResponse;
+    Info(InfoRequest): InfoResponse;
+    CheckTx(CheckTxRequest): CheckTxResponse;
+    Query(QueryRequest): QueryResponse;
+    Commit(CommitRequest): CommitResponse;
+    InitChain(InitChainRequest): InitChainResponse;
+    ListSnapshots(ListSnapshotsRequest): ListSnapshotsResponse;
+    OfferSnapshot(OfferSnapshotRequest): OfferSnapshotResponse;
+    LoadSnapshotChunk(LoadSnapshotChunkRequest): LoadSnapshotChunkResponse;
+    ApplySnapshotChunk(ApplySnapshotChunkRequest): ApplySnapshotChunkResponse;
+    PrepareProposal(PrepareProposalRequest): PrepareProposalResponse;
+    ProcessProposal(ProcessProposalRequest): ProcessProposalResponse;
+    ExtendVote(ExtendVoteRequest): ExtendVoteResponse;
+    VerifyVoteExtension(VerifyVoteExtensionRequest): VerifyVoteExtensionResponse;
+    FinalizeBlock(FinalizeBlockRequest): FinalizeBlockResponse;
+}
